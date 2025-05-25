@@ -3,7 +3,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/Alibou
+          issuer-uri: http://localhost:8080/realms/devTimeTracker
           jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
 server:
   port: 8081
@@ -11,5 +11,5 @@ server:
 jwt:
   auth:
     converter:
-      resource-id: alibou-rest-api
+      resource-id: devTimeTracker-rest-api
       principle-attribute: preferred_username

@@ -1,4 +1,4 @@
-package com.alibou.keycloak;
+package com.dengas.devtimetracker.controllers;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,5 +19,10 @@ public class DemoController {
     @PreAuthorize("hasRole('client_admin')")
     public String hello2() {
         return "Hello from Spring boot & Keycloak - ADMIN";
+    }
+
+    @GetMapping("/hello")
+    public String hello3() {
+        return "Hello";
     }
 }

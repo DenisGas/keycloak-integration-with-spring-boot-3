@@ -1,4 +1,4 @@
-package com.alibou.keycloak;
+package com.dengas.devtimetracker;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

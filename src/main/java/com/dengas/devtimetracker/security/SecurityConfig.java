@@ -1,5 +1,6 @@
-package com.alibou.keycloak;
+package com.dengas.devtimetracker.security;
 
+import com.dengas.devtimetracker.utils.JwtAuthConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,8 +24,9 @@ public class SecurityConfig {
         http
                 .csrf()
                     .disable()
-                .authorizeHttpRequests()
-                    .anyRequest()
+                .authorizeHttpRequests().requestMatchers("/api/v1/demo/hello").permitAll().requestMatchers("/api/v1/auth/*").permitAll().requestMatchers("/api/v1/user/*").permitAll()
+
+                .anyRequest()
                         .authenticated();
 
         http

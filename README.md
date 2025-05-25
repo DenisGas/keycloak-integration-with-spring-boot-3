@@ -43,15 +43,34 @@ These instructions will get you a copy of the project up and running on your loc
     ```bash
     docker-compose up -d
     ```
-2. Navigate to [Keycloak Admin UI Console](http://localhost:9090 "Keycloak Admin UI Console")
-3. Create a new Real and name ut ```Alibou``` or update the ```application.yml``` file and specify your Realm name
+2. Navigate to [Keycloak Admin UI Console](http://localhost:8080 "Keycloak Admin UI Console")
+3. Create a new Real and name ut ```devTimeTracker``` or update the ```application.yml``` file and specify your Realm name
 4. Create Roles
 5. Create Users
 6. Assign roles to users
 
 ## Usage
+TBD
 
-TBD 
+## 🌐 Realm OpenID Configuration
+
+http://localhost:8080/realms/devTimeTracker/.well-known/openid-configuration
+
+
+
+## 🔁 Realm Export & Import
+📤 Export Realm (Windows + Docker) 
+
+    ```powershell
+    docker exec -it keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data/export --realm devTimeTracker --users realm_file
+    ```
+
+    ```powershell
+    docker cp keycloak:/opt/keycloak/data/export/devTimeTracker-realm.json .
+    ```
+
+
+
 
 ## Contributing
 
