@@ -1,10 +1,20 @@
 spring:
   security:
     oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: devTimeTracker-rest-api
+            client-secret: t0JJg0MQxvyiZoErK6Gy8hmdpcQgjYFC
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: openid, profile, email
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8080/realms/devTimeTracker
           jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
+
 server:
   port: 8081
 
@@ -13,3 +23,12 @@ jwt:
     converter:
       resource-id: devTimeTracker-rest-api
       principle-attribute: preferred_username
+
+keycloak:
+  client-id: devTimeTracker-rest-api
+  client-secret: t0JJg0MQxvyiZoErK6Gy8hmdpcQgjYFC
+  redirect-uri: http://localhost:8081/api/auth/callback
+  token-uri: http://localhost:8080/realms/devTimeTracker/protocol/openid-connect/token
+  realm: devTimeTracker
+  auth-uri: http://localhost:8080/realms/devTimeTracker/protocol/openid-connect/auth
+  logout-uri: http://localhost:8080/realms/devTimeTracker/protocol/openid-connect/logout

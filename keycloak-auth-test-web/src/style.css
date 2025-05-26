@@ -1,0 +1,100 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background-color: #f4f4f4;
+  color: #333;
+  line-height: 1.5;
+}
+
+h1 {
+  text-align: center;
+  color: #222;
+}
+
+.btns {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.btns button {
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.btns button:hover {
+  background-color: #0056b3;
+}
+
+/* 🔐 Блок привітання */
+#hi {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background-color: #e6f7ff;
+  border-left: 4px solid #1890ff;
+  border-radius: 4px;
+  font-size: 1.1rem;
+}
+
+/* 🔑 Блок токена */
+.token-container {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.token-container strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+  color: #d48806;
+}
+
+.token-box {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 0.75rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  max-height: 250px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#tokenValue {
+  max-width: 600px;
+  white-space: pre-wrap; /* ✅ переносить строки, якщо не влазить */
+
+}
+
+
+#copyTokenBtn {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background-color: #52c41a;
+  border: none;
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.2s ease;
+}
+
+#copyTokenBtn:hover {
+  background-color: #389e0d;
+}

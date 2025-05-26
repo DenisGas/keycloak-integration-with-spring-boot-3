@@ -1,23 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Keycloak Auth Demo</title>
-  </head>
-  <body>
-    <h1>🔐 Keycloak Login Demo</h1>
+<head>
+  <meta charset="UTF-8" />
+  <title>Keycloak Auth Demo</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+<h1>🔐 Keycloak Login Demo</h1>
 
-    <!-- Кнопка входу -->
-    <button id="loginBtn">Login with Keycloak</button>
-    <button id="logoutBtn" style="display: none">Logout</button>
+<div class="btns">
+  <button id="loginBtn" style="display: none;">Login</button>
+  <button id="logoutBtn" style="display: none;">Logout</button>
+  <button id="getDataBtn" style="display: none;">Full Logout</button>
+</div>
 
-    <!-- Кнопка отримання даних -->
-    <button id="getDataBtn" style="display: none">Get My Data</button>
 
-    <!-- Вивід інформації про користувача -->
-    <div id="userData"></div>
 
-    <!-- Скрипт -->
-    <script type="module" src="./src/main.js"></script>
-  </body>
+<div style="display: none;" id="hi">Hello<span id="username"></span> (<span id="email"></span>)</div>
+
+
+<div class="token-container" id="tokenBlock" style="display: none;">
+  <strong>🔑 Access Token:</strong>
+  <div class="token-box">
+  <pre id="tokenValue"></pre>
+  </div>
+  <button id="copyTokenBtn">📋 Copy</button>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
 </html>

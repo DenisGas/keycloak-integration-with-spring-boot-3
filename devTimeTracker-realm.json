@@ -54,6 +54,7 @@
       "composites" : {
         "realm" : [ "offline_access", "uma_authorization" ],
         "client" : {
+          "devTimeTracker-rest-api" : [ "client_user" ],
           "account" : [ "view-profile", "manage-account" ]
         }
       },
@@ -416,7 +417,7 @@
   "otpPolicyLookAheadWindow" : 1,
   "otpPolicyPeriod" : 30,
   "otpPolicyCodeReusable" : false,
-  "otpSupportedApplications" : [ "totpAppMicrosoftAuthenticatorName", "totpAppFreeOTPName", "totpAppGoogleName" ],
+  "otpSupportedApplications" : [ "totpAppFreeOTPName", "totpAppMicrosoftAuthenticatorName", "totpAppGoogleName" ],
   "webAuthnPolicyRpEntityName" : "keycloak",
   "webAuthnPolicySignatureAlgorithms" : [ "ES256" ],
   "webAuthnPolicyRpId" : "",
@@ -438,43 +439,20 @@
   "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister" : false,
   "webAuthnPolicyPasswordlessAcceptableAaguids" : [ ],
   "users" : [ {
-    "id" : "4492c73e-ba2d-48c5-8733-0883fcef4dc8",
-    "createdTimestamp" : 1748186803638,
-    "username" : "admin123",
-    "enabled" : true,
-    "totp" : false,
-    "emailVerified" : false,
-    "firstName" : "DENYS",
-    "lastName" : "HASYLO",
-    "email" : "mishk908@gmail.com",
-    "credentials" : [ {
-      "id" : "efbe4287-87e7-4575-997c-e58f232bf970",
-      "type" : "password",
-      "createdDate" : 1748186803685,
-      "secretData" : "{\"value\":\"tWokaa4pDUHQcW8rnaDhI62vo1ZVZmsYyYDidwF2R0A=\",\"salt\":\"NKnjbcxv03p1RIMvjHGoqw==\",\"additionalParameters\":{}}",
-      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
-    } ],
-    "disableableCredentialTypes" : [ ],
-    "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-devtimetracker" ],
-    "notBefore" : 0,
-    "groups" : [ ]
-  }, {
-    "id" : "766beb36-2aff-44e6-9aeb-fa9569b8b7e5",
-    "createdTimestamp" : 1748170332413,
+    "id" : "653543ec-4ef9-4b07-bae1-7fadaac5687f",
+    "createdTimestamp" : 1748210897536,
     "username" : "den",
     "enabled" : true,
     "totp" : false,
     "emailVerified" : false,
-    "firstName" : "",
-    "lastName" : "",
-    "email" : "dehuc1811@gmail.com",
+    "firstName" : "Денис",
+    "lastName" : "Гасило",
+    "email" : "denisgasilo@outlook.com",
     "credentials" : [ {
-      "id" : "1cb5fd25-f60a-4c01-892c-f49fa31a14c5",
+      "id" : "10efdcc3-b02c-4b50-b817-7aff1fac63e7",
       "type" : "password",
-      "userLabel" : "My password",
-      "createdDate" : 1748170359156,
-      "secretData" : "{\"value\":\"PFb5Cj0XuDoVLcc+JpCJLf94EjAmxIL/nNGZt+KMjyo=\",\"salt\":\"f9SpgqY7YxG8suXyvfeCtw==\",\"additionalParameters\":{}}",
+      "createdDate" : 1748210897622,
+      "secretData" : "{\"value\":\"Tmr5qUkqVo1c1tDpCC6GfCkoykxXcsaLG81l0q+3NbQ=\",\"salt\":\"O9F+7nobLdEIbTP3cI2HsQ==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -486,43 +464,44 @@
     "notBefore" : 0,
     "groups" : [ ]
   }, {
-    "id" : "88eab013-321d-4b67-af9e-ac803bd6fff0",
-    "createdTimestamp" : 1748186773414,
-    "username" : "den123",
+    "id" : "896230ed-633a-4510-8830-900051b764f7",
+    "createdTimestamp" : 1748210807212,
+    "username" : "denisgas",
     "enabled" : true,
     "totp" : false,
-    "emailVerified" : false,
-    "firstName" : "Денис",
-    "lastName" : "Гасило",
-    "email" : "st8005801@stud.duikt.edu.ua",
-    "credentials" : [ {
-      "id" : "09a81a88-f0c8-4b27-86e1-732d27449b34",
-      "type" : "password",
-      "createdDate" : 1748186773500,
-      "secretData" : "{\"value\":\"ve8DdW8CuK5RUpWjPBsdEBEIm2xWsOUV5DfZqAxI4bY=\",\"salt\":\"Z4f0sIu/R1gZSlfakS1WfQ==\",\"additionalParameters\":{}}",
-      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
-    } ],
+    "emailVerified" : true,
+    "firstName" : "Denis",
+    "lastName" : "Gasilo",
+    "email" : "dehuc1811@gmail.com",
+    "credentials" : [ ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
+    "federatedIdentities" : [ {
+      "identityProvider" : "github",
+      "userId" : "81939899",
+      "userName" : "denisgas"
+    } ],
     "realmRoles" : [ "default-roles-devtimetracker" ],
+    "clientRoles" : {
+      "devTimeTracker-rest-api" : [ "client_user" ]
+    },
     "notBefore" : 0,
     "groups" : [ ]
   }, {
-    "id" : "f7523f84-70d1-4e27-8308-69a88f81a71f",
-    "createdTimestamp" : 1748186333015,
-    "username" : "neden",
+    "id" : "39b2ca35-0f72-432c-a49f-a31a83d3af0e",
+    "createdTimestamp" : 1748211732489,
+    "username" : "gasylo.dv",
     "enabled" : true,
     "totp" : false,
     "emailVerified" : false,
-    "firstName" : "",
-    "lastName" : "",
-    "email" : "denisgasilo@outlook.com",
+    "firstName" : "DENYS",
+    "lastName" : "HASYLO",
+    "email" : "mishk908@gmail.com",
     "credentials" : [ {
-      "id" : "2a8f526a-0adb-4eae-baec-672414db9beb",
+      "id" : "a6a6e9fa-b261-44c4-8a04-43e2606bc2d5",
       "type" : "password",
-      "userLabel" : "My password",
-      "createdDate" : 1748186344996,
-      "secretData" : "{\"value\":\"Kt2/xTf12OQOXrbtXFWD0ZN77B0Tylaz5irLLwhp0k4=\",\"salt\":\"NhPk+nLx5kKE50Oy8Rthdg==\",\"additionalParameters\":{}}",
+      "createdDate" : 1748211732631,
+      "secretData" : "{\"value\":\"AFoX64Lt7HYOTFPr2yLt6GZI2ePbfzRkMRlIm4bTOgQ=\",\"salt\":\"gD+nT8QPdrr34l72GICPSw==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -1312,8 +1291,40 @@
   "enabledEventTypes" : [ ],
   "adminEventsEnabled" : false,
   "adminEventsDetailsEnabled" : false,
-  "identityProviders" : [ ],
-  "identityProviderMappers" : [ ],
+  "identityProviders" : [ {
+    "alias" : "github",
+    "internalId" : "4a40251e-f990-46ef-867b-4f917586c39c",
+    "providerId" : "github",
+    "enabled" : true,
+    "updateProfileFirstLoginMode" : "on",
+    "trustEmail" : true,
+    "storeToken" : true,
+    "addReadTokenRoleOnCreate" : false,
+    "authenticateByDefault" : false,
+    "linkOnly" : false,
+    "firstBrokerLoginFlowAlias" : "first broker login",
+    "config" : {
+      "hideOnLoginPage" : "false",
+      "baseUrl" : "https://github.com",
+      "clientId" : "Ov23liYYeezAQJI2HG4W",
+      "acceptsPromptNoneForwardFromClient" : "false",
+      "apiUrl" : "https://api.github.com",
+      "disableUserInfo" : "false",
+      "syncMode" : "IMPORT",
+      "clientSecret" : "bcfcfedbe92d0e90cef627470bade3dd77b03cfe",
+      "guiOrder" : "1"
+    }
+  } ],
+  "identityProviderMappers" : [ {
+    "id" : "6034ab5c-4ba2-4589-8cc7-a48a7ea36a20",
+    "name" : "github-role-mapper",
+    "identityProviderAlias" : "github",
+    "identityProviderMapper" : "oidc-hardcoded-role-idp-mapper",
+    "config" : {
+      "syncMode" : "FORCE",
+      "role" : "devTimeTracker-rest-api.client_user"
+    }
+  } ],
   "components" : {
     "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy" : [ {
       "id" : "6b8e9203-0a0f-4ff2-93de-c2c0c5fcba78",

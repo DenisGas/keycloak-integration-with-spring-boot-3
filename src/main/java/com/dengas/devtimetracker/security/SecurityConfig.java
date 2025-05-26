@@ -22,12 +22,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf()
-                    .disable()
-                .authorizeHttpRequests().requestMatchers("/api/v1/demo/hello").permitAll().requestMatchers("/api/v1/auth/*").permitAll().requestMatchers("/api/v1/user/*").permitAll()
-
-                .anyRequest()
-                        .authenticated();
+                .csrf().disable()
+                .authorizeHttpRequests()
+                .requestMatchers(
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**"
+                ).permitAll()
+                .requestMatchers("/api/v1/demo").permitAll()
+                .requestMatchers("/api/v1/demo/*").permitAll()
+                .requestMatchers("/api/v1/auth/*").permitAll()
+                .requestMatchers("/api/v1/user/*").permitAll()
+                .anyRequest().authenticated();
 
         http
                 .oauth2ResourceServer()

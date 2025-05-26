@@ -61,17 +61,69 @@ http://localhost:8080/realms/devTimeTracker/.well-known/openid-configuration
 ## 🔁 Realm Export & Import
 📤 Export Realm (Windows + Docker) 
 
-    ```powershell
+```powershell
     docker exec -it keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data/export --realm devTimeTracker --users realm_file
-    ```
+```
 
-    ```powershell
+```powershell
     docker cp keycloak:/opt/keycloak/data/export/devTimeTracker-realm.json .
-    ```
+```
 
+## ✅ How to Use Login
 
+1. Open terminal and run:
 
+   ```powershell
+   cd .\keycloak-auth-test-web\
+   npm install
+   npm run dev
+   ```
 
+2. Open your browser and go to:
+   👉 [http://localhost:5173/](http://localhost:5173/)
+
+3. Use the **Login** button in the app to sign in via Keycloak.
+
+4. After successful login, you will be redirected **back to the same page** (`http://localhost:5173/`).
+
+5. You can use the **Logout** button to sign out — you will also be redirected back to this page after logout.
+
+![img_2.png](img_2.png)
+
+## 🔐 GitHub Authentication Support
+
+This project supports third-party authentication via **GitHub** using Keycloak Identity Provider integration.
+
+### 🔧 How to Enable GitHub Login
+
+1. Go to your Keycloak Admin Console → *Identity Providers*.
+
+2. Click **Add provider** → Choose **GitHub**.
+
+3. Fill in the required fields:
+
+   * **Client ID** and **Client Secret**:
+     Create a new OAuth App on [GitHub Developer Settings](https://github.com/settings/developers)
+     Set the **Authorization callback URL** to:
+
+     ```
+     http://localhost:8080/realms/devTimeTracker/broker/github/endpoint
+     ```
+
+4. Save the identity provider.
+
+5. Now, users can log in with GitHub when they click the **Login** button in the frontend app.
+
+### ✅ Example Flow
+
+* User clicks **Login**
+* Redirected to Keycloak login page
+* Chooses **Login with GitHub**
+* Grants access
+* Redirected back to `http://localhost:5173/` with active session
+
+![img.png](img.png)
+---
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
