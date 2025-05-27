@@ -10,13 +10,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/user")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {
+        "http://localhost:5173",  // для разработки (если фронт запущен отдельно)
+        "http://frontend:5173",   // для Docker-сети
+        "http://127.0.0.1:5173"   // альтернативный localhost
+})
 public class UserController {
 
     private final UserService userService;
@@ -27,7 +32,7 @@ public class UserController {
 
     @Operation(
             summary = "Отримати інформацію про користувача",
-            description = "Повертає email, імʼя користувача",
+            description = "Повертає інформацію користувача",
             security = @SecurityRequirement(name = "bearerAuth"),
             responses = {
                     @ApiResponse(
@@ -68,12 +73,18 @@ public class UserController {
             }
     )
     @GetMapping("/me")
-    public ResponseEntity<?> getUserInfo(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
             throw new UnauthorizedException("Unauthorized");
         }
-
         var userInfo = userService.getUserInfo(jwt);
+        return ResponseEntity.ok(new MyApiResponse<>(userInfo));
+    }
+    
+    @PreAuthorize("hasRole('client_admin')")
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable String userId) {
+        var userInfo = userService.getUserInfoById(userId);
         return ResponseEntity.ok(new MyApiResponse<>(userInfo));
     }
 }

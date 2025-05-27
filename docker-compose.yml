@@ -1,4 +1,25 @@
 services:
+  # PostgreSQL для Java додатку (запускається першим)
+  postgres-app:
+    container_name: postgres-app
+    image: postgres:15
+    environment:
+      POSTGRES_DB: devtimetracker
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5432:5432"  # Стандартний порт для локального підключення
+    volumes:
+      - postgres_app_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak (запускається після БД)
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:21.1.1
@@ -11,6 +32,56 @@ services:
       - keycloak_data:/opt/keycloak/data
     command:
       - "start-dev"
+    networks:
+      - app-network
+
+#  # Spring Boot додаток
+#  spring-app:
+#    container_name: spring-app
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.spring
+#    environment:
+#      # Налаштування для підключення до контейнерів
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-app:5432/devtimetracker
+#      SPRING_DATASOURCE_USERNAME: devuser
+#      SPRING_DATASOURCE_PASSWORD: devpassword
+#      # Keycloak URLs для внутрішнього використання
+#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/devTimeTracker
+#      # Keycloak URLs для зовнішнього використання (localhost)
+#      KEYCLOAK_TOKEN_URI: http://localhost:8080/realms/devTimeTracker/protocol/openid-connect/token
+#      KEYCLOAK_AUTH_URI: http://localhost:8080/realms/devTimeTracker/protocol/openid-connect/auth
+#      KEYCLOAK_LOGOUT_URI: http://localhost:8080/realms/devTimeTracker/protocol/openid-connect/logout
+#    ports:
+#      - "8081:8081"
+#    networks:
+#      - app-network
+#    depends_on:
+#      - postgres-app
+#      - keycloak
+#    restart: unless-stopped
+
+  # Frontend на Vite
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      # URL для API та Keycloak
+      - VITE_API_URL=http://localhost:8081
+      - VITE_KEYCLOAK_URL=http://localhost:8080
+    networks:
+      - app-network
+#    depends_on:
+#      - spring-app
+    restart: unless-stopped
+
+networks:
+  app-network:
 
 volumes:
-  keycloak_data:
+  keycloak_data:      # Зберігає дані Keycloak
+  postgres_app_data:  # Зберігає дані PostgreSQL

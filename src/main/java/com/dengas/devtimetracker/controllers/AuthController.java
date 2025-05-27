@@ -23,7 +23,11 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {
+        "http://localhost:5173",  // для разработки (если фронт запущен отдельно)
+        "http://frontend:5173",   // для Docker-сети
+        "http://127.0.0.1:5173"   // альтернативный localhost
+})
 @Tag(name = "Auth Controller", description = "Аутентификация через Keycloak")
 public class AuthController {
 

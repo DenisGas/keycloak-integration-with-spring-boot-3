@@ -1,0 +1,25 @@
+# Ігноруємо файли для оптимізації збірки Docker образів
+
+# Maven
+target/
+*.iml
+.idea/
+
+# Node modules (для frontend)
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Bat files
+*.bat

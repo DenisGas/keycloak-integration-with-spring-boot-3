@@ -27,13 +27,17 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/swagger-ui.html",
                         "/swagger-ui/**",
-                        "/v3/api-docs/**"
-                ).permitAll()
-                .requestMatchers("/api/v1/demo").permitAll()
-                .requestMatchers("/api/v1/demo/*").permitAll()
-                .requestMatchers("/api/v1/auth/*").permitAll()
-                .requestMatchers("/api/v1/user/*").permitAll()
-                .anyRequest().authenticated();
+                        "/v3/api-docs/**",
+                        "/swagger-resources/**",
+                        "/webjars/**",
+                        "/api/v1/demo/**",
+                        "/api/v1/auth/**",
+                        "/api/v1/user/**",
+                        "/api/v1/health/**",
+                        "/api/v1/user/me",
+                        "/api/v1/stats/**"
+
+                ).permitAll().anyRequest().authenticated();
 
         http
                 .oauth2ResourceServer()
