@@ -1,7 +1,8 @@
-package com.dengas.devtimetracker.services;
+package com.dengas.devtimetracker.services.implement;
 
 import com.dengas.devtimetracker.model.Team;
 import com.dengas.devtimetracker.model.User;
+import com.dengas.devtimetracker.services.TeamService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;

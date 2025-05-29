@@ -5,10 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Запрос для аутентификации по логину и паролю")
 public class LoginRequest {
 
-    @Schema(description = "Имя пользователя", example = "user@example.com", required = true)
+    @Schema(description = "User name", example = "den", required = true)
     private String username;
 
-    @Schema(description = "Пароль пользователя", example = "password123", required = true)
+    @Schema(description = "User password", example = "2004", required = true)
     private String password;
 
     public LoginRequest() {}

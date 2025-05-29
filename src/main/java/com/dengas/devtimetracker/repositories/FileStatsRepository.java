@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface FileStatsRepository extends JpaRepository<FileStats, Long> {
+
+public interface FileStatsRepository extends JpaRepository<FileStats, String> {
     List<FileStats> findByProjectId(String projectId);
+    void deleteByProjectId(String projectId);
 }

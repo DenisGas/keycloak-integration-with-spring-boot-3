@@ -17,4 +17,12 @@ public interface ProjectStatsService {
     Object getTeamMemberProjects();
 
     Object getProjectsByTeamId(Long teamId);
+
+    ProjectStats patchProjectStats(String projectId, ProjectStats stats, Jwt jwt);
+
+    void deleteProject(String projectId, Jwt jwt);
+
+    String generateBadge(String label, String value, String color);
+
+    ProjectStats findProjectById(String projectId);
 }

@@ -21,45 +21,45 @@ These instructions will get you a copy of the project up and running on your loc
 ### Installation
 
 1. Clone the repository:
-    ```bash
-    git clone git@github.com:ali-bouali/keycloak-integration-with-spring-boot-3.git
-    ```
+   ```bash
+   git clone git@github.com:ali-bouali/keycloak-integration-with-spring-boot-3.git
+   ```
 2. Navigate into the project directory:
-    ```bash
-    cd your-repository-name
-    ```
+   ```bash
+   cd your-repository-name
+   ```
 3. Use Maven to build the project:
-    ```bash
-    mvn clean install
-    ```
+   ```bash
+   mvn clean install
+   ```
 4. You can then run the Spring Boot application using:
-    ```bash
-    mvn spring-boot:run
-    ```
+   ```bash
+   mvn spring-boot:run
+   ```
 
 ### Keycloak Setup
 
 1. Run the docker-compose file:
-    ```bash
-    docker-compose up -d
-    ```
+   ```bash
+   docker-compose up -d
+   ```
 2. Navigate to [Keycloak Admin UI Console](http://localhost:8080 "Keycloak Admin UI Console")
-3. Create a new Real and name ut ```devTimeTracker``` or update the ```application.yml``` file and specify your Realm name
+3. Create a new Real and name ut `devTimeTracker` or update the `application.yml` file and specify your Realm name
 4. Create Roles
 5. Create Users
 6. Assign roles to users
 
 ## Usage
+
 TBD
 
 ## 🌐 Realm OpenID Configuration
 
 http://localhost:8080/realms/devTimeTracker/.well-known/openid-configuration
 
-
-
 ## 🔁 Realm Export & Import
-📤 Export Realm (Windows + Docker) 
+
+📤 Export Realm (Windows + Docker)
 
 ```powershell
     docker exec -it keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data/export --realm devTimeTracker --users realm_file
@@ -96,13 +96,13 @@ This project supports third-party authentication via **GitHub** using Keycloak I
 
 ### 🔧 How to Enable GitHub Login
 
-1. Go to your Keycloak Admin Console → *Identity Providers*.
+1. Go to your Keycloak Admin Console → _Identity Providers_.
 
 2. Click **Add provider** → Choose **GitHub**.
 
 3. Fill in the required fields:
 
-   * **Client ID** and **Client Secret**:
+   - **Client ID** and **Client Secret**:
      Create a new OAuth App on [GitHub Developer Settings](https://github.com/settings/developers)
      Set the **Authorization callback URL** to:
 
@@ -116,15 +116,21 @@ This project supports third-party authentication via **GitHub** using Keycloak I
 
 ### ✅ Example Flow
 
-* User clicks **Login**
-* Redirected to Keycloak login page
-* Chooses **Login with GitHub**
-* Grants access
-* Redirected back to `http://localhost:5173/` with active session
+- User clicks **Login**
+- Redirected to Keycloak login page
+- Chooses **Login with GitHub**
+- Grants access
+- Redirected back to `http://localhost:5173/` with active session
 
-![img.png](img.png)
----
 swager - http://localhost:8081/swagger-ui/index.html
+
+## ![img.png](img.png)
+
+
+## GitHub Badge Support Preview
+![img_1.png](img_1.png)
+
+
 
 ## Contributing
 
