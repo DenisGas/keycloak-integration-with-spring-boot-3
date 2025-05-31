@@ -1,9 +1,6 @@
 package com.dengas.devtimetracker.services.implement;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
+import com.dengas.devtimetracker.dto.ResponseWrapper;
 import com.dengas.devtimetracker.exceptions.ResourceNotFoundException;
 import com.dengas.devtimetracker.exceptions.UnauthorizedException;
 import com.dengas.devtimetracker.factory.UserFactory;
@@ -17,7 +14,9 @@ import com.dengas.devtimetracker.repositories.UserRepository;
 import com.dengas.devtimetracker.services.ProjectStatsService;
 import com.dengas.devtimetracker.utils.SecurityUtils;
 import jakarta.validation.ValidationException;
-import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,381 +25,402 @@ import java.time.LocalDate;
 import java.util.*;
 
 @Service
-@RequiredArgsConstructor
 public class ProjectStatsServiceImpl implements ProjectStatsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProjectStatsServiceImpl.class);
 
     private final ProjectStatsRepository projectStatsRepository;
     private final FileStatsRepository fileStatsRepository;
     private final UserRepository userRepository;
     private final UserFactory userFactory;
 
+    public ProjectStatsServiceImpl(ProjectStatsRepository projectStatsRepository,
+                                   FileStatsRepository fileStatsRepository,
+                                   UserRepository userRepository,
+                                   UserFactory userFactory) {
+        this.projectStatsRepository = projectStatsRepository;
+        this.fileStatsRepository = fileStatsRepository;
+        this.userRepository = userRepository;
+        this.userFactory = userFactory;
+    }
+
     @Override
-    public List<ProjectStats> getAllProjectStats(Jwt jwt) {
-        List<ProjectStats> projects;
-        if (SecurityUtils.isAdmin(jwt)) {
-            projects = projectStatsRepository.findAll();
-        } else {
+    public ResponseWrapper<List<ProjectStats>> getAllProjectStats(Jwt jwt) {
+        try {
+            List<ProjectStats> projects;
+            if (SecurityUtils.isAdmin(jwt)) {
+                projects = projectStatsRepository.findAll();
+            } else {
+                String userId = jwt.getSubject();
+                projects = projectStatsRepository.findByUserId(userId);
+            }
+
+            for (ProjectStats project : projects) {
+                List<FileStats> files = fileStatsRepository.findByProjectId(project.getProjectId());
+                project.setFiles(files);
+            }
+
+            return ResponseWrapper.success(projects);
+        } catch (Exception e) {
+            logger.error("Error retrieving all project stats: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve project stats", "INTERNAL_ERROR");
+        }
+    }
+
+    @Override
+    public ResponseWrapper<ProjectStats> getProjectStats(String projectId, Jwt jwt) {
+        try {
             String userId = jwt.getSubject();
-            projects = projectStatsRepository.findByUserId(userId);
-        }
+            ProjectStats project = projectStatsRepository.findById(projectId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        // Загружаем файлы для каждого проекта
-        for (ProjectStats project : projects) {
-            List<FileStats> files = fileStatsRepository.findByProjectId(project.getProjectId());
+            if (project.getUser() != null && !project.getUser().getId().equals(userId) && !SecurityUtils.isAdmin(jwt)) {
+                throw new UnauthorizedException("You do not have access to this project");
+            }
+
+            List<FileStats> files = fileStatsRepository.findByProjectId(projectId);
             project.setFiles(files);
-        }
 
-        return projects;
-    }
-
-    @Override
-    public ProjectStats getProjectStats(String projectId, Jwt jwt) {
-        String userId = jwt.getSubject();
-        ProjectStats project = projectStatsRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Проект не знайдено з ID: " + projectId));
-
-        if (project.getUser() != null && !project.getUser().getId().equals(userId) && !SecurityUtils.isAdmin(jwt)) {
-            throw new UnauthorizedException("У вас немає доступу до цього проекту");
-        }
-
-        // Загружаем файлы проекта
-        List<FileStats> files = fileStatsRepository.findByProjectId(projectId);
-        project.setFiles(files);
-
-        return project;
-    }
-
-    public ProjectStats createProject(ProjectStats stats, Jwt jwt) {
-        String projectId = UUID.randomUUID().toString();
-        stats.setProjectId(projectId);
-        stats.setGithubBadgeVisible(false);
-
-        String userId = jwt.getSubject();
-        User user = userRepository.findById(userId)
-                .map(existingUser -> {
-                    User updatedUser = userFactory.updateIfNeeded(existingUser);
-                    return updatedUser != null ? userRepository.save(updatedUser) : existingUser;
-                })
-                .orElseGet(() -> {
-                    User newUser = userFactory.createFromJwt(jwt);
-                    return userRepository.save(newUser);
-                });
-
-        stats.setUser(user);
-
-        // Спочатку зберігаємо сам проект (без файлів)
-        ProjectStats savedProject = projectStatsRepository.save(stats);
-
-        // Потім обробляємо файли
-        List<FileStats> savedFiles = new ArrayList<>();
-        if (stats.getFiles() != null && !stats.getFiles().isEmpty()) {
-            for (FileStats file : stats.getFiles()) {
-                validateFileStats(file);
-                file.setProjectId(savedProject.getProjectId());
-
-                if (file.getDailyStats() != null && !file.getDailyStats().isEmpty()) {
-                    file.calculateTotalTimes();
-                }
-
-                FileStats savedFile = fileStatsRepository.save(file);
-                savedFiles.add(savedFile);
-            }
-        }
-
-        // Розраховуємо загальну статистику проекту
-        calculateProjectDailyStats(savedProject, savedFiles);
-        savedProject.calculateTotalTimes();
-
-        // Зберігаємо оновлений проект зі статистикою
-        savedProject = projectStatsRepository.save(savedProject);
-
-        // Повертаємо проект з файлами
-        savedProject.setFiles(savedFiles);
-        return savedProject;
-    }
-
-
-    private void calculateProjectDailyStats(ProjectStats project, List<FileStats> files) {
-        Map<LocalDate, DailyStats> projectDailyStats = new HashMap<>();
-
-        for (FileStats file : files) {
-            if (file.getDailyStats() != null) {
-                for (Map.Entry<LocalDate, DailyStats> entry : file.getDailyStats().entrySet()) {
-                    LocalDate date = entry.getKey();
-                    DailyStats fileDailyStats = entry.getValue();
-
-                    DailyStats projectStats = projectDailyStats.computeIfAbsent(date, k -> new DailyStats());
-                    long currentCodingTime = projectStats.getCodingTime() != null ? projectStats.getCodingTime() : 0L;
-                    long currentOpenTime = projectStats.getOpenTime() != null ? projectStats.getOpenTime() : 0L;
-
-                    projectStats.setCodingTime(currentCodingTime + fileDailyStats.getCodingTime());
-                    projectStats.setOpenTime(currentOpenTime + fileDailyStats.getOpenTime());
-                }
-            }
-        }
-
-        project.setDailyStats(projectDailyStats);
-    }
-
-    private void validateFileStats(FileStats file) {
-        if (file.getFilePath() == null || file.getFilePath().trim().isEmpty()) {
-            throw new ValidationException("File path is required");
-        }
-        if (file.getType() == null || file.getType().trim().isEmpty()) {
-            throw new ValidationException("File type is required");
-        }
-
-        // Проверяем наличие dailyStats
-        if (file.getDailyStats() == null || file.getDailyStats().isEmpty()) {
-            // Если нет dailyStats, должны быть установлены общие времена
-            if (file.getCodingTime() == null || file.getOpenTime() == null) {
-                throw new ValidationException("Either daily stats or total times must be provided");
-            }
-        } else {
-            // Проверяем валидность dailyStats
-            for (Map.Entry<LocalDate, DailyStats> entry : file.getDailyStats().entrySet()) {
-                DailyStats dailyStats = entry.getValue();
-                if (dailyStats.getCodingTime() == null || dailyStats.getOpenTime() == null) {
-                    throw new ValidationException("Daily stats must have both coding time and open time");
-                }
-            }
+            return ResponseWrapper.success(project);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.NOT_FOUND, e.getMessage(), "NOT_FOUND");
+        } catch (UnauthorizedException e) {
+            logger.error("Unauthorized access: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.FORBIDDEN, e.getMessage(), "UNAUTHORIZED");
+        } catch (Exception e) {
+            logger.error("Error retrieving project stats: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve project stats", "INTERNAL_ERROR");
         }
     }
 
     @Override
     @Transactional
-    public ProjectStats updateProjectStats(String projectId, ProjectStats stats, Jwt jwt) {
-        Logger logger = LoggerFactory.getLogger(ProjectStatsServiceImpl.class);
-        logger.debug("Початок оновлення проєкту з ID: {}", projectId);
-
+    public ResponseWrapper<ProjectStats> createProject(ProjectStats stats, Jwt jwt) {
         try {
-            String userId = jwt.getSubject();
-            logger.debug("Отримано userId з JWT: {}", userId);
+            String projectId = UUID.randomUUID().toString();
+            stats.setProjectId(projectId);
+            stats.setGithubBadgeVisible(false);
 
-            // Перевіряємо існування проєкту
-            logger.debug("Шукаємо проєкт з ID: {}", projectId);
-            ProjectStats existingProject = projectStatsRepository.findById(projectId)
-                    .orElseThrow(() -> {
-                        logger.error("Проєкт не знайдено з ID: {}", projectId);
-                        return new ResourceNotFoundException("Проєкт не знайдено з ID: " + projectId);
+            String userId = jwt.getSubject();
+            User user = userRepository.findById(userId)
+                    .map(existingUser -> {
+                        User updatedUser = userFactory.updateIfNeeded(existingUser);
+                        return updatedUser != null ? userRepository.save(updatedUser) : existingUser;
+                    })
+                    .orElseGet(() -> {
+                        User newUser = userFactory.createFromJwt(jwt);
+                        return userRepository.save(newUser);
                     });
 
-            // Перевіряємо права доступу
-            logger.debug("Перевірка прав доступу для користувача: {}", userId);
-            if (existingProject.getUser() == null || !existingProject.getUser().getId().equals(userId) && !SecurityUtils.isAdmin(jwt)) {
-                logger.error("Користувач {} не має доступу до проєкту {} або користувач не встановлений", userId, projectId);
-                throw new UnauthorizedException("У вас немає доступу до цього проєкту");
+            stats.setUser(user);
+
+            ProjectStats savedProject = projectStatsRepository.save(stats);
+
+            List<FileStats> savedFiles = new ArrayList<>();
+            if (stats.getFiles() != null && !stats.getFiles().isEmpty()) {
+                for (FileStats file : stats.getFiles()) {
+                    validateFileStats(file);
+                    file.setProjectId(savedProject.getProjectId());
+
+                    if (file.getDailyStats() != null && !file.getDailyStats().isEmpty()) {
+                        file.calculateTotalTimes();
+                    }
+
+                    FileStats savedFile = fileStatsRepository.save(file);
+                    savedFiles.add(savedFile);
+                }
             }
 
-            // Оновлюємо основні поля проєкту
-            logger.debug("Оновлення основних полів проєкту");
+            calculateProjectDailyStats(savedProject, savedFiles);
+            savedProject.calculateTotalTimes();
+
+            savedProject = projectStatsRepository.save(savedProject);
+            savedProject.setFiles(savedFiles);
+
+            return ResponseWrapper.success(savedProject);
+        } catch (ValidationException e) {
+            logger.error("Validation error: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.BAD_REQUEST, e.getMessage(), "VALIDATION_ERROR");
+        } catch (Exception e) {
+            logger.error("Error creating project: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create project", "INTERNAL_ERROR");
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseWrapper<ProjectStats> updateProjectStats(String projectId, ProjectStats stats, Jwt jwt) {
+        try {
+            String userId = jwt.getSubject();
+            ProjectStats existingProject = projectStatsRepository.findById(projectId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
+
+            if (existingProject.getUser() == null || !existingProject.getUser().getId().equals(userId) && !SecurityUtils.isAdmin(jwt)) {
+                throw new UnauthorizedException("You do not have access to this project");
+            }
+
             existingProject.setProjectPath(stats.getProjectPath() != null ? stats.getProjectPath() : existingProject.getProjectPath());
             existingProject.setGithubBadgeVisible(stats.isGithubBadgeVisible());
 
-            // Оновлюємо dailyStats, якщо вони передані
             if (stats.getDailyStats() != null && !stats.getDailyStats().isEmpty()) {
-                logger.debug("Оновлення dailyStats для проєкту");
                 existingProject.setDailyStats(stats.getDailyStats());
             }
 
-            // Зберігаємо проєкт перед обробкою файлів
-            logger.debug("Збереження проєкту перед обробкою файлів");
             existingProject = projectStatsRepository.save(existingProject);
-            logger.debug("Проєкт збережено з ID: {}", existingProject.getProjectId());
-
-            // Видаляємо всі існуючі файли проєкту
-            logger.debug("Видалення всіх файлів для проєкту з ID: {}", projectId);
             fileStatsRepository.deleteByProjectId(projectId);
 
-            // Обробляємо нові файли
             List<FileStats> savedFiles = new ArrayList<>();
             if (stats.getFiles() != null) {
-                logger.debug("Обробка {} файлів для проєкту", stats.getFiles().size());
                 for (FileStats file : stats.getFiles()) {
-                    logger.debug("Валідація файлу: {}", file.getFilePath());
                     validateFileStats(file);
                     file.setProjectId(projectId);
 
-                    // Перераховуємо totalCodingTime і totalOpenTime для файлу
                     if (file.getDailyStats() != null && !file.getDailyStats().isEmpty()) {
-                        logger.debug("Перерахунок часу для файлу: {}", file.getFilePath());
                         file.calculateTotalTimes();
                     }
 
-                    logger.debug("Збереження файлу: {}", file.getFilePath());
                     FileStats savedFile = fileStatsRepository.save(file);
                     savedFiles.add(savedFile);
                 }
-            } else {
-                logger.debug("Файли не передані для оновлення");
             }
 
-            // Перераховуємо dailyStats проєкту на основі файлів
-            logger.debug("Перерахунок dailyStats для проєкту");
             calculateProjectDailyStats(existingProject, savedFiles);
             existingProject.calculateTotalTimes();
 
-            // Зберігаємо оновлений проєкт
-            logger.debug("Збереження оновленого проєкту");
             existingProject = projectStatsRepository.save(existingProject);
-
-            // Завантажуємо файли для повернення в відповіді
-            logger.debug("Встановлення файлів у відповідь: {} файлів", savedFiles.size());
             existingProject.setFiles(savedFiles);
 
-            logger.info("Проєкт з ID: {} успішно оновлено", projectId);
-            return existingProject;
-
+            return ResponseWrapper.success(existingProject);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.NOT_FOUND, e.getMessage(), "NOT_FOUND");
+        } catch (UnauthorizedException e) {
+            logger.error("Unauthorized access: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.FORBIDDEN, e.getMessage(), "UNAUTHORIZED");
+        } catch (ValidationException e) {
+            logger.error("Validation error: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.BAD_REQUEST, e.getMessage(), "VALIDATION_ERROR");
         } catch (Exception e) {
-            logger.error("Помилка при оновленні проєкту з ID: {}. Деталі: {}", projectId, e.getMessage(), e);
-            throw e;
+            logger.error("Error updating project: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update project", "INTERNAL_ERROR");
         }
     }
-
-    @Override
-    public List<FileStats> getProjectFiles(String projectId) {
-        if (!projectStatsRepository.existsById(projectId)) {
-            throw new ResourceNotFoundException("Проект не знайдено з ID: " + projectId);
-        }
-
-        return fileStatsRepository.findByProjectId(projectId);
-    }
-
-    @Override
-    public Object getDashboardStats() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("message", "Dashboard stats not implemented yet");
-        return result;
-    }
-
-    @Override
-    public Object getTeamMemberProjects() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("message", "Team member projects not implemented yet");
-        return result;
-    }
-
-    @Override
-    public Object getProjectsByTeamId(Long teamId) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("message", "Projects by team ID not implemented yet");
-        return result;
-    }
-
 
     @Override
     @Transactional
-    public ProjectStats patchProjectStats(String projectId, ProjectStats updates, Jwt jwt) {
-        Logger logger = LoggerFactory.getLogger(ProjectStatsServiceImpl.class);
-        logger.debug("Початок часткового оновлення проєкту з ID: {}", projectId);
-
+    public ResponseWrapper<ProjectStats> patchProjectStats(String projectId, ProjectStats updates, Jwt jwt) {
         try {
             String userId = jwt.getSubject();
-            logger.debug("Отримано userId з JWT: {}", userId);
-
-            // Перевіряємо існування проєкту
-            logger.debug("Шукаємо проєкт з ID: {}", projectId);
             ProjectStats existingProject = projectStatsRepository.findById(projectId)
-                    .orElseThrow(() -> {
-                        logger.error("Проєкт не знайдено з ID: {}", projectId);
-                        return new ResourceNotFoundException("Проєкт не знайдено з ID: " + projectId);
-                    });
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-            // Перевіряємо права доступу
-            logger.debug("Перевірка прав доступу для користувача: {}", userId);
             if (existingProject.getUser() == null || !existingProject.getUser().getId().equals(userId) && !SecurityUtils.isAdmin(jwt)) {
-                logger.error("Користувач {} не має доступу до проєкту {} або користувач не встановлений", userId, projectId);
-                throw new UnauthorizedException("У вас немає доступу до цього проєкту");
+                throw new UnauthorizedException("You do not have access to this project");
             }
 
-            // Оновлюємо лише передані поля
             if (updates.getProjectPath() != null) {
-                logger.debug("Оновлення projectPath: {}", updates.getProjectPath());
                 existingProject.setProjectPath(updates.getProjectPath());
             }
             if (updates.isGithubBadgeVisible()) {
-                logger.debug("Оновлення githubBadgeVisible: {}", updates.isGithubBadgeVisible());
                 existingProject.setGithubBadgeVisible(updates.isGithubBadgeVisible());
             }
 
-            // Оновлюємо dailyStats, якщо вони передані
             if (updates.getDailyStats() != null && !updates.getDailyStats().isEmpty()) {
-                logger.debug("Оновлення dailyStats для проєкту");
                 existingProject.getDailyStats().putAll(updates.getDailyStats());
             }
 
-            // Зберігаємо проєкт перед обробкою файлів
-            logger.debug("Збереження проєкту перед обробкою файлів");
             existingProject = projectStatsRepository.save(existingProject);
-            logger.debug("Проєкт збережено з ID: {}", existingProject.getProjectId());
 
-            // Обробляємо файли, якщо вони передані
             List<FileStats> savedFiles = new ArrayList<>();
             if (updates.getFiles() != null) {
-                logger.debug("Обробка {} файлів для проєкту", updates.getFiles().size());
-                // Видаляємо старі файли
-                logger.debug("Видалення всіх файлів для проєкту з ID: {}", projectId);
                 fileStatsRepository.deleteByProjectId(projectId);
-
-                // Додаємо нові файли
                 for (FileStats file : updates.getFiles()) {
-                    logger.debug("Валідація файлу: {}", file.getFilePath());
                     validateFileStats(file);
                     file.setProjectId(projectId);
 
-                    // Перераховуємо totalCodingTime і totalOpenTime для файлу
                     if (file.getDailyStats() != null && !file.getDailyStats().isEmpty()) {
-                        logger.debug("Перерахунок часу для файлу: {}", file.getFilePath());
                         file.calculateTotalTimes();
                     }
 
-                    logger.debug("Збереження файлу: {}", file.getFilePath());
                     FileStats savedFile = fileStatsRepository.save(file);
                     savedFiles.add(savedFile);
                 }
             } else {
-                // Якщо файли не передані, завантажуємо існуючі для перерахунку
-                logger.debug("Файли не передані, завантаження існуючих файлів");
                 savedFiles = fileStatsRepository.findByProjectId(projectId);
             }
 
-            // Перераховуємо dailyStats проєкту на основі файлів
-            logger.debug("Перерахунок dailyStats для проєкту");
             calculateProjectDailyStats(existingProject, savedFiles);
             existingProject.calculateTotalTimes();
 
-            // Зберігаємо оновлений проєкт
-            logger.debug("Збереження оновленого проєкту");
             existingProject = projectStatsRepository.save(existingProject);
-
-            // Завантажуємо файли для повернення в відповіді
-            logger.debug("Встановлення файлів у відповідь: {} файлів", savedFiles.size());
             existingProject.setFiles(savedFiles);
 
-            logger.info("Проєкт з ID: {} успішно частково оновлено", projectId);
-            return existingProject;
-
+            return ResponseWrapper.success(existingProject);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.NOT_FOUND, e.getMessage(), "NOT_FOUND");
+        } catch (UnauthorizedException e) {
+            logger.error("Unauthorized access: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.FORBIDDEN, e.getMessage(), "UNAUTHORIZED");
+        } catch (ValidationException e) {
+            logger.error("Validation error: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.BAD_REQUEST, e.getMessage(), "VALIDATION_ERROR");
         } catch (Exception e) {
-            logger.error("Помилка при частковому оновленні проєкту з ID: {}. Деталі: {}", projectId, e.getMessage(), e);
-            throw e;
+            logger.error("Error patching project: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to patch project", "INTERNAL_ERROR");
         }
     }
 
     @Override
-    public void deleteProject(String projectId, Jwt jwt) {
-        String userId = jwt.getSubject();
-        ProjectStats project = projectStatsRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Проект не знайдено з ID: " + projectId));
+    @Transactional
+    public ResponseWrapper<String> deleteProject(String projectId, Jwt jwt) {
+        try {
+            String userId = jwt.getSubject();
+            ProjectStats project = projectStatsRepository.findById(projectId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        if (!project.getUser().getId().equals(userId) && !SecurityUtils.isAdmin(jwt)) {
-            throw new UnauthorizedException("У вас немає доступу до цього проекту");
+            if (project.getUser() == null || !project.getUser().getId().equals(userId) && !SecurityUtils.isAdmin(jwt)) {
+                throw new UnauthorizedException("You do not have access to this project");
+            }
+
+            fileStatsRepository.deleteByProjectId(projectId);
+            projectStatsRepository.deleteById(projectId);
+
+            return ResponseWrapper.success("Project deleted successfully");
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.NOT_FOUND, e.getMessage(), "NOT_FOUND");
+        } catch (UnauthorizedException e) {
+            logger.error("Unauthorized access: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.FORBIDDEN, e.getMessage(), "UNAUTHORIZED");
+        } catch (Exception e) {
+            logger.error("Error deleting project: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete project", "INTERNAL_ERROR");
         }
-
-        // Удаляем все связанные файлы
-        fileStatsRepository.deleteByProjectId(projectId);
-        // Удаляем проект
-        projectStatsRepository.deleteById(projectId);
     }
+
+    @Override
+    public ResponseWrapper<List<FileStats>> getProjectFiles(String projectId) {
+        try {
+            if (!projectStatsRepository.existsById(projectId)) {
+                throw new ResourceNotFoundException("Project not found with ID: " + projectId);
+            }
+
+            List<FileStats> files = fileStatsRepository.findByProjectId(projectId);
+            return ResponseWrapper.success(files);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", e.getMessage());
+            return ResponseWrapper.error(HttpStatus.NOT_FOUND, e.getMessage(), "NOT_FOUND");
+        } catch (Exception e) {
+            logger.error("Error retrieving project files: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve project files", "INTERNAL_ERROR");
+        }
+    }
+
+    @Override
+    public ResponseWrapper<Map<String, Object>> getDashboardStats(Jwt jwt) {
+        try {
+            String userId = jwt.getSubject();
+            List<ProjectStats> projects = SecurityUtils.isAdmin(jwt)
+                    ? projectStatsRepository.findAll()
+                    : projectStatsRepository.findByUserId(userId);
+
+            long totalCodingTime = projects.stream()
+                    .mapToLong(ProjectStats::getTotalCodingTime)
+                    .sum();
+            long totalOpenTime = projects.stream()
+                    .mapToLong(ProjectStats::getTotalOpenTime)
+                    .sum();
+            long projectCount = projects.size();
+            double averageCodingTimePerProject = projectCount > 0 ? (double) totalCodingTime / projectCount : 0;
+
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalProjects", projectCount);
+            stats.put("totalCodingTime", totalCodingTime);
+            stats.put("totalOpenTime", totalOpenTime);
+            stats.put("averageCodingTimePerProject", averageCodingTimePerProject);
+
+            return ResponseWrapper.success(stats);
+        } catch (Exception e) {
+            logger.error("Error retrieving dashboard stats: {}", e.getMessage(), e);
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve dashboard stats", "INTERNAL_ERROR");
+        }
+    }
+
+//    @Override
+//    public ResponseWrapper<List<Map<String, Object>>> getTeamMemberProjects(Jwt jwt) {
+//        try {
+//            String userId = jwt.getSubject();
+//            User user = userRepository.findById(userId)
+//                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+//
+//            // Assume User has a teamId field; replace with actual team retrieval logic
+//            Long teamId = user.getTeamId(); // Placeholder; replace with actual field
+//            if (teamId == null) {
+//                throw new ResourceNotFoundException("User is not assigned to any team");
+//            }
+//
+//            List<User> teamMembers = userRepository.findByTeamId(teamId);
+//            List<Map<String, Object>> teamProjects = new ArrayList<>();
+//
+//            for (User member : teamMembers) {
+//                List<ProjectStats> projects = projectStatsRepository.findByUserId(member.getId());
+//                Map<String, Object> memberData = new HashMap<>();
+//                memberData.put("userId", member.getId());
+//                memberData.put("projects", projects);
+//                teamProjects.add(memberData);
+//            }
+//
+//            return ResponseWrapper.success(teamProjects);
+//        } catch (ResourceNotFoundException e) {
+//            logger.error("Resource not found: {}", e.getMessage());
+//            return ResponseWrapper.error(HttpStatus.NOT_FOUND, e.getMessage(), "NOT_FOUND");
+//        } catch (Exception e) {
+//            logger.error("Error retrieving team member projects: {}", e.getMessage(), e);
+//            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve team member projects", "INTERNAL_ERROR");
+//        }
+//    }
+//
+//    @Override
+//    public ResponseWrapper<List<ProjectStats>> getProjectsByTeamId(Long teamId, Jwt jwt) {
+//        try {
+//            // Assume team exists; replace with actual team repository check
+//            List<User> teamMembers = userRepository.findByTeamId(teamId);
+//            if (teamMembers.isEmpty()) {
+//                throw new ResourceNotFoundException("Team not found with ID: " + teamId);
+//            }
+//
+//            // Verify user is part of the team or admin
+//            String userId = jwt.getSubject();
+//            User user = userRepository.findById(userId)
+//                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+//            if (!SecurityUtils.isAdmin(jwt) && (user.getTeamId() == null || !user.getTeamId().equals(teamId))) {
+//                throw new UnauthorizedException("You do not have access to this team's projects");
+//            }
+//
+//            List<ProjectStats> projects = new ArrayList<>();
+//            for (User member : teamMembers) {
+//                projects.addAll(projectStatsRepository.findByUserId(member.getId()));
+//            }
+//
+//            for (ProjectStats project : projects) {
+//                List<FileStats> files = fileStatsRepository.findByProjectId(project.getProjectId());
+//                project.setFiles(files);
+//            }
+//
+//            return ResponseWrapper.success(projects);
+//        } catch (ResourceNotFoundException e) {
+//            logger.error("Team not found: {}", e.getMessage());
+//            return ResponseWrapper.error(HttpStatus.NOT_FOUND, e.getMessage(), "NOT_FOUND");
+//        } catch (UnauthorizedException e) {
+//            logger.error("Unauthorized access: {}", e.getMessage());
+//            return ResponseWrapper.error(HttpStatus.FORBIDDEN, e.getMessage(), "UNAUTHORIZED");
+//        } catch (Exception e) {
+//            logger.error("Error retrieving projects by team ID: {}", e.getMessage(), e);
+//            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve team projects", "INTERNAL_ERROR");
+//        }
+//    }
 
     @Override
     public String generateBadge(String label, String value, String color) {
@@ -444,10 +464,54 @@ public class ProjectStatsServiceImpl implements ProjectStatsService {
         );
     }
 
+    private void calculateProjectDailyStats(ProjectStats project, List<FileStats> files) {
+        Map<LocalDate, DailyStats> projectDailyStats = new HashMap<>();
+
+        for (FileStats file : files) {
+            if (file.getDailyStats() != null) {
+                for (Map.Entry<LocalDate, DailyStats> entry : file.getDailyStats().entrySet()) {
+                    LocalDate date = entry.getKey();
+                    DailyStats fileDailyStats = entry.getValue();
+
+                    DailyStats projectStats = projectDailyStats.computeIfAbsent(date, k -> new DailyStats());
+                    long currentCodingTime = projectStats.getCodingTime() != null ? projectStats.getCodingTime() : 0L;
+                    long currentOpenTime = projectStats.getOpenTime() != null ? projectStats.getOpenTime() : 0L;
+
+                    projectStats.setCodingTime(currentCodingTime + fileDailyStats.getCodingTime());
+                    projectStats.setOpenTime(currentOpenTime + fileDailyStats.getOpenTime());
+                }
+            }
+        }
+
+        project.setDailyStats(projectDailyStats);
+    }
+
+    private void validateFileStats(FileStats file) {
+        if (file.getFilePath() == null || file.getFilePath().trim().isEmpty()) {
+            throw new ValidationException("File path is required");
+        }
+        if (file.getType() == null || file.getType().trim().isEmpty()) {
+            throw new ValidationException("File type is required");
+        }
+
+        if (file.getDailyStats() == null || file.getDailyStats().isEmpty()) {
+            if (file.getCodingTime() == null || file.getOpenTime() == null) {
+                throw new ValidationException("Either daily stats or total times must be provided");
+            }
+        } else {
+            for (Map.Entry<LocalDate, DailyStats> entry : file.getDailyStats().entrySet()) {
+                DailyStats dailyStats = entry.getValue();
+                if (dailyStats.getCodingTime() == null || dailyStats.getOpenTime() == null) {
+                    throw new ValidationException("Daily stats must have both coding time and open time");
+                }
+            }
+        }
+    }
+
+    @Override
     public ProjectStats findProjectById(String projectId) {
         ProjectStats project = projectStatsRepository.findById(projectId).orElse(null);
         if (project != null) {
-            // Загружаем файлы
             List<FileStats> files = fileStatsRepository.findByProjectId(projectId);
             project.setFiles(files);
         }

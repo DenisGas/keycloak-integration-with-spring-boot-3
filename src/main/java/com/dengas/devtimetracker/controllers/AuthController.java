@@ -1,9 +1,6 @@
 package com.dengas.devtimetracker.controllers;
 
-import com.dengas.devtimetracker.dto.CodeExchangeRequest;
-import com.dengas.devtimetracker.dto.ErrorResponse;
-import com.dengas.devtimetracker.dto.LoginRequest;
-import com.dengas.devtimetracker.dto.TokenResponse;
+import com.dengas.devtimetracker.dto.*;
 import com.dengas.devtimetracker.services.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -179,14 +177,14 @@ public class AuthController {
                     description = "Учетные данные пользователя",
                     required = true,
                     content = @Content(
-                            mediaType = "application/json",
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = LoginRequest.class),
                             examples = @ExampleObject(
                                     name = "Пример запроса",
                                     value = """
                                             {
-                                              "username": "user@example.com",
-                                              "password": "password123"
+                                              "username": "den",
+                                              "password": "2004"
                                             }
                                             """
                             )
@@ -197,17 +195,23 @@ public class AuthController {
                             responseCode = "200",
                             description = "Успешная аутентификация",
                             content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = TokenResponse.class),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ResponseWrapper.class),
                                     examples = @ExampleObject(
                                             name = "Успешный ответ",
                                             value = """
-                                                    {
-                                                      "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                      "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                      "expires_in": 3600
-                                                    }
-                                                    """
+                                            {
+                                              "success": true,
+                                              "data": {
+                                                "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "expires_in": 3600
+                                              },
+                                              "error": null,
+                                              "timestamp": "2025-05-31T15:45:00.123456789",
+                                              "status": 200
+                                            }
+                                            """
                                     )
                             )
                     ),
@@ -215,15 +219,22 @@ public class AuthController {
                             responseCode = "401",
                             description = "Неверные учетные данные",
                             content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = ErrorResponse.class),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ResponseWrapper.class),
                                     examples = @ExampleObject(
                                             name = "Ошибка аутентификации",
                                             value = """
-                                                    {
-                                                      "error": "Invalid username or password"
-                                                    }
-                                                    """
+                                            {
+                                              "success": false,
+                                              "data": null,
+                                              "error": {
+                                                "message": "Неверные имя пользователя или пароль",
+                                                "code": "INVALID_CREDENTIALS"
+                                              },
+                                              "timestamp": "2025-05-31T15:45:00.123456789",
+                                              "status": 401
+                                            }
+                                            """
                                     )
                             )
                     ),
@@ -231,14 +242,29 @@ public class AuthController {
                             responseCode = "500",
                             description = "Внутренняя ошибка сервера",
                             content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = ErrorResponse.class)
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ResponseWrapper.class),
+                                    examples = @ExampleObject(
+                                            name = "Внутренняя ошибка",
+                                            value = """
+                                            {
+                                              "success": false,
+                                              "data": null,
+                                              "error": {
+                                                "message": "Внутренняя ошибка сервера",
+                                                "code": "INTERNAL_ERROR"
+                                              },
+                                              "timestamp": "2025-05-31T15:45:00.123456789",
+                                              "status": 500
+                                            }
+                                            """
+                                    )
                             )
                     )
             }
     )
     @PostMapping("/token")
-    public ResponseEntity<?> getTokenByCredentials(@org.springframework.web.bind.annotation.RequestBody LoginRequest credentials) {
-        return authService.exchangeCredentials(credentials.getUsername(), credentials.getPassword());
+    public ResponseEntity<ResponseWrapper<TokenResponse>> getTokenByCredentials(@org.springframework.web.bind.annotation.RequestBody LoginRequest credentials) {
+        return ResponseEntity.ok(authService.exchangeCredentials(credentials.getUsername(), credentials.getPassword()));
     }
 }

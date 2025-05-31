@@ -1,6 +1,8 @@
 package com.dengas.devtimetracker.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
 
@@ -12,6 +14,8 @@ public class ResponseWrapper<T> {
     private boolean success;
     private T data;
     private ErrorDetails error;
+
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
     private LocalDateTime timestamp;
     private int status;
 

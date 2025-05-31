@@ -8,6 +8,11 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
@@ -32,22 +37,40 @@ public class SecurityConfig {
                         "/webjars/**",
                         "/api/v1/demo/**",
                         "/api/v1/auth/**",
-                        "/api/v1/user/**",
                         "/api/v1/health/**",
-                        "/api/v1/user/me",
-                        "/api/v1/stats/**"
-
-                ).permitAll().anyRequest().authenticated();
+                        "/api/v1/stats/**",
+                        "/api/v1/user/**"
+                ).permitAll()
+                .anyRequest().authenticated();
 
         http
                 .oauth2ResourceServer()
-                    .jwt()
-                        .jwtAuthenticationConverter(jwtAuthConverter);
+                .jwt()
+                .jwtAuthenticationConverter(jwtAuthConverter)
+                .and()
+                .authenticationEntryPoint(new CustomBearerTokenAuthenticationEntryPoint());
 
         http
                 .sessionManagement()
-                    .sessionCreationPolicy(STATELESS);
+                .sessionCreationPolicy(STATELESS);
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:5173",
+                "http://frontend:5173",
+                "http://127.0.0.1:5173"
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

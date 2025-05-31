@@ -1,6 +1,8 @@
 package com.dengas.devtimetracker.services;
 
 import com.dengas.devtimetracker.config.KeycloakProperties;
+import com.dengas.devtimetracker.dto.ResponseWrapper;
+import com.dengas.devtimetracker.dto.TokenResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -80,7 +82,7 @@ public class AuthService {
         }
     }
 
-    public ResponseEntity<?> exchangeCredentials(String username, String password) {
+    public ResponseWrapper<TokenResponse> exchangeCredentials(String username, String password) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -98,17 +100,18 @@ public class AuthService {
             ResponseEntity<String> response = restTemplate.postForEntity(tokenEndpoint, request, String.class);
             Map<String, Object> tokens = objectMapper.readValue(response.getBody(), Map.class);
 
-            return ResponseEntity.ok(Map.of(
-                    "access_token", tokens.get("access_token"),
-                    "refresh_token", tokens.get("refresh_token"),
-                    "expires_in", tokens.get("expires_in")
-            ));
+            TokenResponse tokenResponse = new TokenResponse(
+                    (String) tokens.get("access_token"),
+                    null, // id_token не повертається для password grant
+                    (String) tokens.get("refresh_token"),
+                    (Integer) tokens.get("expires_in")
+            );
+
+            return ResponseWrapper.success(tokenResponse);
         } catch (HttpClientErrorException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid username or password"));
+            return ResponseWrapper.error(HttpStatus.UNAUTHORIZED, "Неверные имя пользователя или пароль", "INVALID_CREDENTIALS");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Internal error"));
+            return ResponseWrapper.error(HttpStatus.INTERNAL_SERVER_ERROR, "Внутренняя ошибка сервера", "INTERNAL_ERROR");
         }
     }
 
