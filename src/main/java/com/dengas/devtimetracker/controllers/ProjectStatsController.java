@@ -722,7 +722,8 @@ public class ProjectStatsController {
             @Parameter(description = "Project ID", required = true, example = "123e4567-e89b-12d3-a456-426614174000")
             @PathVariable String projectId,
             @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(projectStatsService.deleteProject(projectId, jwt));
+        ResponseWrapper<String> response = projectStatsService.deleteProject(projectId, jwt);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
     @Operation(

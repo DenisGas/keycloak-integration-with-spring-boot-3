@@ -100,7 +100,7 @@ public class ProjectStatsServiceImpl implements ProjectStatsService {
         try {
             String projectId = UUID.randomUUID().toString();
             stats.setProjectId(projectId);
-            stats.setGithubBadgeVisible(false);
+            stats.setGithubBadgeVisible(stats.isGithubBadgeVisible());
 
             String userId = jwt.getSubject();
             User user = userRepository.findById(userId)

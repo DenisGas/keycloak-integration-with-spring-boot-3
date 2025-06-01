@@ -12,4 +12,12 @@ public class DailyStats {
 
     @NotNull(message = "Open time must not be null")
     private Long openTime;
+
+    public DailyStats(Long codingTime, Long openTime) {
+        this.codingTime = codingTime;
+        this.openTime = openTime;
+    }
+
+    public DailyStats() {
+    }
 }
