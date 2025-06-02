@@ -223,7 +223,9 @@ public class ProjectStatsServiceImpl implements ProjectStatsService {
                 existingProject.setProjectPath(updates.getProjectPath());
             }
             if (updates.isGithubBadgeVisible()) {
-                existingProject.setGithubBadgeVisible(updates.isGithubBadgeVisible());
+                existingProject.setGithubBadgeVisible(true);
+            }else {
+                existingProject.setGithubBadgeVisible(false);
             }
 
             if (updates.getDailyStats() != null && !updates.getDailyStats().isEmpty()) {
